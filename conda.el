@@ -280,20 +280,20 @@ Set for the lifetime of the process.")
    (list (f-expand "environment.yaml" dir)
          (f-expand "environment.yml" dir))))
 
-(defun conda--find-env-yml (dir)
+(defun conda--find-env-yaml (dir)
   "Find an environment.yml in DIR or its parent directories."
   ;; TODO: implement an optimized finder with e.g. projectile? Or a series of
   ;; finder functions, that stop at the project root when traversing
   (let ((containing-path (f-traverse-upwards #'conda--env-yaml-expand dir)))
     (if containing-path (conda--env-yaml-expand containing-path) nil)))
 
-(defun conda--get-name-from-env-yml (filename)
+(defun conda--get-name-from-env-yaml (filename)
   "Pull the `name` property out of the YAML file at FILENAME."
   ;; TODO: find a better way than slurping it in and using a regex...
   (when filename
-    (let ((env-yml-contents (f-read-text filename)))
-      (if (string-match "name:[ ]*\\([A-z0-9-_.]+\\)[ ]*$" env-yml-contents)
-          (match-string 1 env-yml-contents)
+    (let ((env-yaml-contents (f-read-text filename)))
+      (if (string-match "name:[ ]*\\([A-z0-9-_.]+\\)[ ]*$" env-yaml-contents)
+          (match-string 1 env-yaml-contents)
         nil))))
 
 (defun conda--infer-env-from-buffer ()
@@ -304,7 +304,7 @@ Set for the lifetime of the process.")
                         default-directory)))
     (when working-dir
       (or
-       (conda--get-name-from-env-yml (conda--find-env-yml working-dir))
+       (conda--get-name-from-env-yaml (conda--find-env-yaml working-dir))
        (if (or
             conda-activate-base-by-default
             (alist-get 'auto_activate_base (conda--get-config)))
