@@ -246,13 +246,13 @@ Set for the lifetime of the process.")
              ""))))
 
 (defun conda--env-yaml-expand (dir)
-  "Does CANDIDATE contain an environment.yml?"
+  "Does CANDIDATE contain an environment YAML file?"
   (cl-find-if #'f-exists?
    (list (f-expand "environment.yaml" dir)
          (f-expand "environment.yml" dir))))
 
 (defun conda--find-env-yaml (dir)
-  "Find an environment.yml in DIR or its parent directories."
+  "Find an environment YAML file in DIR or its parent directories."
   ;; TODO: implement an optimized finder with e.g. projectile? Or a series of
   ;; finder functions, that stop at the project root when traversing
   (let ((containing-path (f-traverse-upwards #'conda--env-yaml-expand dir)))
@@ -268,7 +268,7 @@ Set for the lifetime of the process.")
         nil))))
 
 (defun conda--infer-env-from-buffer ()
-  "Search up the project tree for an `environment.yml` defining a conda env."
+  "Search up the project tree for an environment YAML file defining a conda env."
   (let* ((filename (buffer-file-name))
          (working-dir (if filename
                           (f-dirname filename)
@@ -634,7 +634,7 @@ Returns a list of new path elements."
 
 This can be set by a buffer-local or project-local variable (e.g. a
 `.dir-locals.el` that defines `conda-project-env-path`), or inferred from an
-`environment.yml` or similar at the project level."
+environment YAML file or similar at the project level."
   (interactive)
   (let* ((inferred-env (conda--infer-env-from-buffer))
          (env-path (cond
