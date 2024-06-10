@@ -444,10 +444,12 @@ Returns a list of new path elements."
 (defun conda-env-deactivate ()
   "Deactivate the current conda env."
   (interactive)
-  (when (bound-and-true-p conda-env-current-path)
+  (cond
+   ((bound-and-true-p conda-env-current-path)
     (run-hooks 'conda-predeactivate-hook)
     (setq python-shell-virtualenv-root nil)
-    (let ((params (conda--get-deactivation-parameters conda-env-current-path)))
+    (let ((params (conda--get-deactivation-parameters conda-env-current-path))
+          (env-name conda-env-current-name))
       (if (not (eq nil (conda-env-params-vars-export params)))
           (conda--update-env-from-params params)
         (progn ;; otherwise we fall back to legacy heuristics
@@ -455,14 +457,15 @@ Returns a list of new path elements."
           (setenv "CONDA_PREFIX" nil)))
       (setq exec-path (s-split (if (eq system-type 'windows-nt) ";" ":" )
                                (conda-env-params-path params)))
-      (setenv "PATH" (conda-env-params-path params)))
-    (setq conda-env-current-path nil)
-    (setq conda-env-current-name nil)
-    (setq eshell-path-env (getenv "PATH"))
-    (conda--set-system-gud-pdb-command-name)
-    (run-hooks 'conda-postdeactivate-hook)
-    (when (called-interactively-p 'interactive)
-      (message "conda env deactivated"))))
+      (setenv "PATH" (conda-env-params-path params))
+      (setq conda-env-current-path nil)
+      (setq conda-env-current-name nil)
+      (setq eshell-path-env (getenv "PATH"))
+      (conda--set-system-gud-pdb-command-name)
+      (run-hooks 'conda-postdeactivate-hook)
+      (when (called-interactively-p 'interactive)
+        (message "Deactivated conda environment: %s" env-name))))
+   (t (message "No Conda environment is active"))))
 
 ;;;###autoload
 (defun conda-env-activate (&optional name)
