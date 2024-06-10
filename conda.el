@@ -626,7 +626,7 @@ Returns a list of new path elements."
   (defun eshell/deactivate () (conda-env-deactivate))
   ;; (defun eshell/rmvirtualenv (&rest args) (apply #'conda-env-rmvirtualenv args))
   ;; (defun eshell/mkvirtualenv (&rest args) (apply #'conda-env-mkvirtualenv args))
-  (defun eshell/lsvirtualenv () (conda-env-list))
+  (defun eshell/lsvirtualenv () (princ (s-join "\n" (conda-env-candidates))))
   ;; make completions work
   (conda--make-pcompletions ("activate"))
   (message "Eshell Conda environment support initialized."))
