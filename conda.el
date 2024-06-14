@@ -489,7 +489,6 @@ Returns a list of new path elements."
       ;; switch back into the buffer.
       (setq conda-env-current-path env-path)
       (setq conda-env-current-name (conda-env-dir-to-name env-path))
-      (set (make-local-variable 'conda-project-env-path) env-path)
       ;; run hooks
       (run-hooks 'conda-preactivate-hook)
       ;; push it onto the history
