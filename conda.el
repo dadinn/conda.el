@@ -648,18 +648,68 @@ environment YAML file or similar at the project level."
       (if conda-message-on-environment-switch
           (message "No Conda environment found for <%s>" (buffer-file-name))))))
 
+(defcustom conda-env-yaml-default-channels '("conda-forge" "defaults")
+  "List of Anaconda channels to initialize new environment YAML files with,
+used by `conda-env-yaml-get-create-for-buffer'."
+  :type '(list string)
+  :group 'conda)
+
+(defcustom conda-env-yaml-default-dependencies '("python" "pip")
+  "List of Anaconda package dependencies to initialize new environment YAML files with,
+used by `conda-env-yaml-get-create-for-buffer'."
+  :type '(list string)
+  :group 'conda)
+
+(defcustom conda-env-yaml-default-pip-dependencies '("build" "wheel")
+  "List of PIP package dependencies to initialize new environment YAML files with,
+used by `conda-env-yaml-get-create-for-buffer'."
+  :type '(list string)
+  :group 'conda)
+
+(defun conda--choose-new-environment-name (&optional prompt)
+  "Prompt for new environment name with PROMPT, ensuring it does not already exist."
+  (let ((env-name (read-string (or prompt "Enter name for new conda environment: "))))
+    (if (member env-name (conda-env-candidates))
+        (conda--choose-new-environment-name (format "Conda environment %s already exists. Try again: " env-name))
+      env-name)))
+
 ;;;###autoload
 (defun conda-env-yaml-get-create-for-buffer ()
   "Open Conda environment YAML file implied by the current buffer.
 
 If no environment file exists it creates one in the directory for the
-current buffer file, or the `default-directory' if no associated file exists."
+current buffer file, or the `default-directory' if no associated file exists.
+
+It then prompts for a new name for the conda environment, and initializes
+it using the values of: `conda-env-yaml-default-channels',`conda-env-yaml-default-dependencies',
+and `conda-env-yaml-default-pip-dependencies'."
   (interactive)
   (let* ((filename (buffer-file-name))
          (working-dir (if filename (f-dirname filename) default-directory))
          (env-yaml (if working-dir (conda--find-env-yaml working-dir))))
-    (if (not (eql env-yaml nil)) (find-file env-yaml)
-      (find-file "environment.yaml"))))
+    (if (null env-yaml)
+      (let ((env-name (conda--choose-new-environment-name))
+            (filename (f-expand "environment.yaml" working-dir)))
+        (with-temp-buffer
+          (insert "name: " env-name)
+          (unless (null conda-env-yaml-default-channels)
+            (insert (mapconcat 'identity
+                     (cons "\nchannels:" conda-env-yaml-default-channels)
+                     "\n  - ")))
+          (unless (null conda-env-yaml-default-dependencies)
+            (insert (mapconcat 'identity
+                     (cons "\ndependencies:" conda-env-yaml-default-dependencies)
+                     "\n  - ")))
+          (unless (null conda-env-yaml-default-pip-dependencies)
+            (insert (mapconcat 'identity
+                     (cons "\n  - pip:" conda-env-yaml-default-pip-dependencies)
+                     "\n    - ")))
+          (insert "\n")
+          (write-region (point-min) (point-max) filename))
+        (find-file filename)
+        (message "New Conda environment file %s is created and opened." filename))
+      (find-file env-yaml)
+      (message "Opened Conda environment file %s" env-yaml))))
 
 (defun conda--switch-buffer-auto-activate (&rest args)
   "Add Conda environment activation if a buffer has a file, handling ARGS."
