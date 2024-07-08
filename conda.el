@@ -691,6 +691,19 @@ environment YAML file or similar at the project level."
       (if conda-message-on-environment-switch
           (message "No Conda environment found for <%s>" (buffer-file-name))))))
 
+;;;###autoload
+(defun conda-env-yaml-get-create-for-buffer ()
+  "Open Conda environment YAML file implied by the current buffer.
+
+If no environment file exists it creates one in the directory for the
+current buffer file, or the `default-directory' if no associated file exists."
+  (interactive)
+  (let* ((filename (buffer-file-name))
+         (working-dir (if filename (f-dirname filename) default-directory))
+         (env-yaml (if working-dir (conda--find-env-yaml working-dir))))
+    (if (not (eql env-yaml nil)) (find-file env-yaml)
+      (find-file "environment.yaml"))))
+
 (defun conda--switch-buffer-auto-activate (&rest args)
   "Add Conda environment activation if a buffer has a file, handling ARGS."
   (let ((filename (buffer-file-name)))
