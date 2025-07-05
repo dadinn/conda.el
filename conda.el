@@ -727,41 +727,44 @@ or to create it if it doesn't yet exist.
 If ARG is non-nil it attempts to remove the environment if exists,
 or reports an error otherwise."
   (interactive "P")
-  (let ((env-file
-         (or (and (file-exists-p env-file) env-file)
-             (conda--find-env-yaml (buffer-file-name)))))
-    (if (not env-file)
-        (user-error "No environment YAML file found.")
-      (let* ((conda-path (conda--get-executable-path))
-             (env-name (conda--get-name-from-env-yaml env-file))
-             (params
-              (cond
-               ((not env-name)
-                (user-error "Could not parse environment name from %s" env-file))
-               ((and arg (not (member env-name (conda-env-candidates))))
-                (user-error "Conda environment <%s> does not exists." env-name))
-               (arg (list "Removing" "remove" "-y" "-n" env-name))
-               ((member env-name (conda-env-candidates))
-                (list "Updating" "update" "-f" env-file))
-               (t (list "Creating" "create" "-f" env-file))))
-             (term-buffer
-              (if (not (file-exists-p conda-path))
-                  (user-error "Could not find Conda executable %s" conda-path)
-                (apply #'make-term (concat "conda-env-" (cadr params))
-                       conda-path nil "env" (cdr params)))))
-        (when term-buffer
-          (let* ((proc (get-buffer-process term-buffer))
-                 (current-sentinel (process-sentinel proc)))
-            (set-process-sentinel proc
-             (conda--env-process-exit-message
-              (downcase (car params)) env-name
-              current-sentinel)))
-          (with-current-buffer term-buffer
-            (unless (term-check-proc term-buffer)
-              (term-mode)
-              (term-line-mode)))
-          (switch-to-buffer term-buffer))
-        (message "%s Conda environment <%s>" (car params) env-name)))))
+  (let* ((env-file
+          (cond
+           ((and env-file (not (f-exists-p env-file)))
+            (user-error "Environment YAML file %s does not exist." env-file))
+           (env-file) ; just use the argument as is!
+           ((conda--find-env-yaml (or (buffer-file-name) default-directory)))))
+         (params
+          (cond
+           (arg
+            (let* ((env-name
+                    (if env-file
+                        (or (conda--get-name-from-env-yaml env-file)
+                            (user-error "Could not parse environment name from %s"
+                                        env-file))))
+                   (candidates (conda-env-candidates))
+                   (env-name (and (member env-name candidates) env-name))
+                   (env-name (completing-read-default
+                              "Remove Conda environment: "
+                              candidates nil t nil nil env-name)))
+              (list "Removing" "remove" "-y" "-n" env-name)))
+           ((member env-name (conda-env-candidates))
+            (list "Updating" "update" "-f" env-file))
+           (t (list "Creating" "create" "-f" env-file))))
+         (term-buffer (apply #'make-term (concat "conda-env-" (cadr params))
+                             (conda--get-executable-path) nil "env" (cdr params))))
+    (when term-buffer
+      (let* ((proc (get-buffer-process term-buffer))
+             (current-sentinel (process-sentinel proc)))
+        (set-process-sentinel proc
+                              (conda--env-process-exit-message
+                               (downcase (car params)) env-name
+                               current-sentinel)))
+      (with-current-buffer term-buffer
+        (unless (term-check-proc term-buffer)
+          (term-mode)
+          (term-line-mode)))
+      (switch-to-buffer term-buffer))
+    (message "%s Conda environment <%s>" (car params) env-name)))
 
 (defcustom conda-env-yaml-default-channels '("conda-forge" "defaults")
   "List of Anaconda channels for new environment YAML files,
@@ -799,38 +802,38 @@ If buffer has no associated file, then creates it in the `default-directory'.
 
 If environment file exists and was called with one \\[universal-argument],
 it calls `conda-env-yaml-process-for-buffer' with the environment file,
-or if called with more than one universal prefixes, t is passed as argument."
+or if called with more than one \\[universal-argument],
+it prompts for an environment to remove."
   (interactive "P")
   (let* ((file-name (buffer-file-name))
-         (file-dir (and file-name (f-dirname file-name)))
-         (env-file (and file-dir (conda--find-env-yaml file-dir))))
+         (env-file (and file-name (conda--find-env-yaml file-name))))
     (cond
-     ((null env-file)
+     ((and (not arg) (null env-file))
       (let* ((project (project-current))
              (env-dir (or (and project (project-root project))
-                          file-dir default-directory))
+                          (and file-name (f-dirname file-name)) default-directory))
              (env-file (f-expand (concat conda-env-yaml-base-name ".yaml") env-dir))
              (env-name (conda--choose-new-environment-name)))
         (find-file env-file)
         (insert "name: " env-name)
         (unless (null conda-env-yaml-default-channels)
           (insert (mapconcat #'identity
-                   (cons "\nchannels:" conda-env-yaml-default-channels)
-                   "\n  - ")))
+                             (cons "\nchannels:" conda-env-yaml-default-channels)
+                             "\n  - ")))
         (unless (null conda-env-yaml-default-dependencies)
           (insert (mapconcat #'identity
-                   (cons "\ndependencies:" conda-env-yaml-default-dependencies)
-                   "\n  - ")))
+                             (cons "\ndependencies:" conda-env-yaml-default-dependencies)
+                             "\n  - ")))
         (unless (null conda-env-yaml-default-pip-dependencies)
           (insert (mapconcat #'identity
-                   (cons "\n  - pip:" conda-env-yaml-default-pip-dependencies)
-                   "\n    - ")))
+                             (cons "\n  - pip:" conda-env-yaml-default-pip-dependencies)
+                             "\n    - ")))
         (insert "\n")
         (message "Generated new Conda environment file %s" env-file)))
      ((consp arg)
       (conda-env-yaml-process-for-buffer (<= 14 (car arg)) env-file))
-     (t (find-file env-file)
-        (message "Opened Conda environment file %s" env-file)))))
+     (env-file (find-file env-file)
+               (message "Opened Conda environment file %s" env-file)))))
 
 (defun conda--switch-buffer-auto-activate (&rest args)
   "Add Conda environment activation if a buffer has a file, handling ARGS."
