@@ -727,29 +727,22 @@ or to create it if it doesn't yet exist.
 If ARG is non-nil it attempts to remove the environment if exists,
 or reports an error otherwise."
   (interactive "P")
-  (let* ((env-file
-          (cond
-           ((and env-file (not (f-exists-p env-file)))
-            (user-error "Environment YAML file %s does not exist." env-file))
-           (env-file) ; just use the argument as is!
-           ((conda--find-env-yaml (or (buffer-file-name) default-directory)))))
-         (params
-          (cond
-           (arg
-            (let* ((env-name
-                    (if env-file
-                        (or (conda--get-name-from-env-yaml env-file)
-                            (user-error "Could not parse environment name from %s"
-                                        env-file))))
-                   (candidates (conda-env-candidates))
-                   (env-name (and (member env-name candidates) env-name))
-                   (env-name (completing-read-default
-                              "Remove Conda environment: "
-                              candidates nil t nil nil env-name)))
-              (list "Removing" "remove" "-y" "-n" env-name)))
-           ((member env-name (conda-env-candidates))
-            (list "Updating" "update" "-f" env-file))
-           (t (list "Creating" "create" "-f" env-file))))
+  (let* ((env-file (cond ((and env-file (not (f-exists-p env-file)))
+                          (user-error "Environment YAML file %s does not exist." env-file))
+                         (env-file) ; just use the argument as is!
+                         ((conda--find-env-yaml (or (buffer-file-name) default-directory)))))
+         (env-name (if env-file (or (conda--get-name-from-env-yaml env-file)
+                                    (user-error "Could not parse environment name from %s"
+                                                env-file))))
+         (params (cond (arg (let* ((candidates (conda-env-candidates))
+                                   (env-name (and (member env-name candidates) env-name))
+                                   (env-name (completing-read-default
+                                              "Remove Conda environment: "
+                                              candidates nil t nil nil env-name)))
+                              (list "Removing" "remove" "-y" "-n" env-name)))
+                       ((member env-name (conda-env-candidates))
+                        (list "Updating" "update" "-f" env-file))
+                       (t (list "Creating" "create" "-f" env-file))))
          (term-buffer (apply #'make-term (concat "conda-env-" (cadr params))
                              (conda--get-executable-path) nil "env" (cdr params))))
     (when term-buffer
