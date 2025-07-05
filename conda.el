@@ -792,18 +792,21 @@ used by `conda-env-yaml-open-create-for-buffer'."
       env-name)))
 
 ;;;###autoload
-(defun conda-env-yaml-open-create-for-buffer (&optional arg)
-  "Open the Conda environment YAML file implied by the current buffer.
+(defun conda-env-manage-for-buffer (&optional arg)
+    "Edit the Conda environment YAML file implied by the current buffer,
+or create, update, remove the environment defined in it.
 
-If no environment file exists yet, then opens a buffer for a new file
-in the root directory of the current project. If no project is associated with
-the current buffer, then creates it in the directory of the current buffer file.
-If buffer has no associated file, then creates it in the `default-directory'.
+If no environment YAML file exists yet, then opens a buffer for a new file in the
+`project-root' directory if defined. If no project is associated with the buffer,
+then creates the YAML file in the current directory for the buffer. If the buffer
+is not a file buffer, then creates the YAML file in the `default-directory'.
 
-If environment file exists and was called with one \\[universal-argument],
-it calls `conda-env-yaml-process-for-buffer' with the environment file,
-or if called with more than one \\[universal-argument],
-it prompts for an environment to remove."
+If environment YAML file exists, and was called with one \\[universal-argument],
+it calls `conda-env-yaml-process-for-buffer' for the environment YAML file,
+or if called with two \\[universal-argument], then prompts for the name of
+an existing environment and calls `conda-env-yaml-process-for-buffer' with
+the prefix to remove it completely, after confirmation. The default candidate
+suggested is the one defined in the environment YAML file, if such file exists."
   (interactive "P")
   (let* ((file-name (buffer-file-name))
          (env-file (and file-name (conda--find-env-yaml file-name))))
