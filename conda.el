@@ -768,19 +768,19 @@ or reports an error otherwise."
 
 (defcustom conda-env-yaml-default-channels '("conda-forge" "defaults")
   "List of Anaconda channels for new environment YAML files,
-used by `conda-env-yaml-open-create-for-buffer'."
+used by `conda-env-yaml-dwim-for-buffer"
   :type '(list string)
   :group 'conda)
 
 (defcustom conda-env-yaml-default-dependencies '("python" "pip")
   "List of Anaconda package dependencies for new environment YAML files,
-used by `conda-env-yaml-open-create-for-buffer'."
+used by `conda-env-yaml-dwim-for-buffer"
   :type '(list string)
   :group 'conda)
 
 (defcustom conda-env-yaml-default-pip-dependencies '("build" "wheel")
   "List of PIP package dependencies for new environment YAML files,
-used by `conda-env-yaml-open-create-for-buffer'."
+used by `conda-env-yaml-dwim-for-buffer"
   :type '(list string)
   :group 'conda)
 
